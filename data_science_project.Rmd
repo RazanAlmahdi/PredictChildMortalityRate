@@ -1,0 +1,622 @@
+---
+title: "Predicting Childhood Mortality Based on Health and Socio-Economic Indicators"
+author: "Aicha Sidiya, Hanin Alzaher, Razan Almahdi"
+date: "2023-06-01"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This project aims to understand the impact of health and socio-economic factors on child mortality rates. 
+\newline This project compiles data from World Bank, the World Health Organisation, and Unicef including data related to health expenditure, education expenditure, literacy rate, water investment, vaccination etc. We aim to use data visualization and machine learning methods to investigate the variables that highly affect childhood mortality rates.  Preliminary results indicate that health expenditure and GDP per capita have a strong influence on mortality rates, although there are significant limitations to the model in its current form.
+\newline The rest of the report is organized as follows: section 2 provides a background on childhood mortality predictions, section 3 presents the research question and problem statement that the report aims to answer, section 4 discusses the data used in this project, its sources and provide a brief on the contents of each dataset, section 5 analyzes those datasets and offers a statistical view on the data, section 6 presents the result of the project, section 7 discusses the results of the models used in prediction and their efficacy, and section 8 provides the highlights of the project.
+
+
+\section{Background}
+The most used indicator for assessing children's health is under-five mortality. It serves as a gauge for the overall growth of any nation. The likelihood that a youngster would pass away before turning five is referred to as under-five mortality. Worldwide, South Asia and Sub-Saharan Africa have higher rates of under-five mortality [1]. In India, the mortality rate for children under five has decreased from 83 per 1000 live births in 2000 to 42 in 2017. According to reports broken down by state, Uttar Pradesh, Madhya Pradesh, and Chhattisgarh have the highest rates of under-five mortality. Under-five mortality has decreased significantly in these states, but it is still a significant problem for child health in emerging nations like India. To reduce the death rate, it is essential to comprehend the significant contributing factors to childhood mortality, yet this understanding alone is insufficient [2].
+
+
+Nowadays, public health research makes extensive use of machine learning (ML) approaches. Different machine learning algorithms have been employed to predict and categorize various biomedical and health data. These machine learning (ML) models are capable of discovering non-linear relationships between the target variable and independent variables as well as interactions. To identify the exposures connected to desired health outcomes as well as any possible interactions between those exposures, machine learning techniques can be used. To determine the precise estimation of health data, a variety of machine learning prediction and classification models, including maximum likelihood techniques, decision trees, principle component analysis (PCA), and logistic regression, have been applied. These methods might aid in obtaining an early forecast and insight into the crucial aspects of under-five mortality [2].
+
+
+The under-five mortality outcome variable was measured as a binary outcome in this study. Therefore, for all models, under-five mortality was calculated as either being alive (coded as 0) or being dead (coded as 1). In this study, individual, household, community, and health service characteristics were employed as predictors (features). Mother and child characteristics made up the individual-level components. Mother's age at birth ( 20, > 20), education (no education, elementary, secondary, or higher), use of contraception (yes/no), and mother's body mass index (BMI) (underweight/overweight, and normal) are all considered maternal variables. Child factors include the child's sex, birth order (1-2, 3/later), births in the past 5 years, and previous birth interval ( 2, 2-4, > 4 years), as well as whether the child was wanted (wanted then, wanted later, or not at all) [3].
+
+
+Important metrics for evaluating the effectiveness of healthcare systems include infant and maternal mortality. In order to reduce preventable death by early intervention, the World Health Organization emphasizes the significance of an effective healthcare system. Health care systems for children and mothers must be accessible, affordable, and readily available as part of early intervention. While numerous studies have evaluated the overt and covert causes of child mortality, there is scant and inconsistent research on the function of policy interventions. Therefore, in the era of reaching the Sustainable Development Goals (SDG), robust empirical examination of the factors that influence maternal and newborn mortality remains equivocal. In this study, we looked at the impact of health spending on baby and maternal fatalities worldwide from 2000 to 2015. This study adjusted an empirical link between health outcome and health spending for the 2007–2008 financial crisis using panel quantile regression with bootstrapping. We discovered that health spending had a detrimental impact on mortality at all percentiles. Maternal mortality rates fall between 0.09\% and 1.91\%, and infant mortality rates fall between 0.19\% and 1.45\%. to fulfill SDG 3's objective of ensuring the wellbeing and healthy lifestyles of all people [3].
+
+\section{Research Question and Problem Statement}
+
+Can machine learning models accurately predict mortality rates based on a set of socio-economic and health indicators?
+
+
+ Accurately predicting mortality rates is crucial for understanding population health and making informed policy decisions. Traditional statistical methods may have limitations in capturing complex relationships between various indicators. This research aims to explore the effectiveness of machine learning models in predicting mortality rates based on a dataset consisting of socio-economic and health indicators. By comparing the performance of multiple models, we seek to identify the most accurate and reliable model for mortality rate prediction, which can assist policymakers and healthcare professionals in developing targeted interventions to improve public health outcomes.
+
+\section{Data}
+
+This project pulls data from the following sources:
+\begin{enumerate}
+    \item  The World Bank database of Literacy rate, adult total (\% of people ages 15 and above 2022): This dataset describes the contrast of the literate and illiterate individuals of ages 15 and above [4]. 
+    
+  \item  The World Bank database of Mortality rate, under-5 (per 1,000 live births): This dataset describes the rates of mortality in newborns and toddlers below the age of 5 years old [5].
+
+  \item The World Bank database of Water productivity, total (constant 2015 US\$ GDP per cubic meter of total freshwater withdrawal): This dataset highlights the freshwater withdrawals in total in the United States [6].
+    
+  \item  The World Bank database of Investment in water and sanitation with private participation (current US\$): This dataset shows the amount of financial investment in sanitation in the United States [7].
+
+  \item  The World Bank database of Current health expenditure (\% of GDP): This dataset displays the financial investment in health on a global scale [8].
+      
+   \item The World Bank database of Current health expenditure per capita (current US\$): This dataset refers to the amount on health per capita in the United states [9]. 
+    \item  The World Bank database of Current education expenditure, total (\% of total expenditure in public institutions): This dataset displays the current global financial situation of education within public institutions [10]. 
+    
+  \item  Our World in Data's database of Income inequality: Gini coefficient, 2019: This dateset sheds light on the global contrast of income according to the Gini coefficient [12]. 
+            
+\end{enumerate}
+
+
+```{r loading libraries, include=FALSE}
+#loading libraries
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(caret)
+library(RANN)
+library(skimr)
+library(ggplot2)
+library(stringr)
+library(gbm)
+```
+```{r loading data, include=FALSE}
+#loading the data set
+mortality_rate <- read.csv('data/Mortality rate, under-5 (per 1,000 live births).csv')
+health_expenditure <- read.csv('data/Current health expenditure per capita (current US$).csv')
+health_expenditure_per <- read.csv('data/Current health expenditure (% of GDP).csv')
+education_expenditure <- read.csv('data/Current education expenditure, total (%).csv')
+literacy_rate <- read.csv('data/literacy_rate.csv')
+domestic_health_expenditure <- read.csv('data/Domestic private health expenditure (% of current health expenditure).csv')
+economic_inequality <- read.csv('data/economic-inequality-gini-index.csv')
+water_invest <- read.csv('data/Investment in water and sanitation (current US$).csv')
+vacinnation <- read.csv('data/vaccination-coverage-by-income-in.csv')
+water_productivity <- read.csv('data/Water productivity_per cubic meter of total freshwater withdrawal.csv')
+healthcare_access <- read.csv('data/healthcare-access-and-quality-index.csv')
+```
+
+
+```{r preprocess1, include=FALSE}
+#selecting from year 2000 till 2020
+mortality_rate <- select(mortality_rate, country, 'X2000':'X2020')
+health_expenditure <- select(health_expenditure, country, 'X2000':'X2020')
+health_expenditure_per<- select(health_expenditure_per, country, 'X2000':'X2020')
+literacy_rate <- select(literacy_rate, country, 'X2000':'X2020')
+education_expenditure <- select(education_expenditure, country, 'X2000':'X2020')
+water_invest <- select(water_invest, country, 'X2000':'X2020')
+water_productivity <- select(water_productivity, country, 'X2000':'X2020')
+domestic_health_expenditure <- select(domestic_health_expenditure, country, 'X2000':'X2020')
+economic_inequality <- filter(economic_inequality, year >= 2000)
+vacinnation <- filter(vacinnation, year >= 2000)
+healthcare_access <- filter(healthcare_access, year >= 2000)
+```
+
+```{r preprocess2, include=FALSE}
+#renaming columns
+mortality_rate_years <- select (mortality_rate, 'X2000':'X2020')
+names(mortality_rate_years) <- str_sub(names(mortality_rate_years),2)
+mortality_rate <- select(mortality_rate, country)
+mortality_rate <- bind_cols(mortality_rate,mortality_rate_years)
+
+health_expenditure_years <- select (health_expenditure, 'X2000':'X2020')
+names(health_expenditure_years) <- str_sub(names(health_expenditure_years),2)
+health_expenditure <- select(health_expenditure, country)
+health_expenditure <- bind_cols(health_expenditure, health_expenditure_years)
+
+health_expenditure_per_years <- select (health_expenditure_per, 'X2000':'X2020')
+names(health_expenditure_per_years) <- str_sub(names(health_expenditure_per_years),2)
+health_expenditure_per <- select(health_expenditure_per, country)
+health_expenditure_per <- bind_cols(health_expenditure_per, health_expenditure_per_years)
+
+education_expenditure_years <- select (education_expenditure, 'X2000':'X2020')
+names(education_expenditure_years) <- str_sub(names(education_expenditure_years),2)
+education_expenditure <- select(education_expenditure, country)
+education_expenditure <- bind_cols(education_expenditure, education_expenditure_years)
+
+domestic_health_expenditure_years <- select (domestic_health_expenditure, 'X2000':'X2020')
+names(domestic_health_expenditure_years) <- str_sub(names(domestic_health_expenditure_years),2)
+domestic_health_expenditure <- select(domestic_health_expenditure, country)
+domestic_health_expenditure <- bind_cols(domestic_health_expenditure, domestic_health_expenditure_years)
+
+literacy_rate_years <- select (literacy_rate, 'X2000':'X2020')
+names(literacy_rate_years) <- str_sub(names(literacy_rate_years),2)
+literacy_rate <- select(literacy_rate, country)
+literacy_rate <- bind_cols(literacy_rate, literacy_rate_years)
+
+water_invest_years <- select (water_invest, 'X2000':'X2020')
+names(water_invest_years) <- str_sub(names(water_invest_years),2)
+water_invest <- select(water_invest, country)
+water_invest <- bind_cols(water_invest, water_invest_years)
+
+water_productivity_years <- select (water_productivity, 'X2000':'X2020')
+names(water_productivity_years) <- str_sub(names(water_productivity_years),2)
+water_productivity <- select(water_productivity, country)
+water_productivity <- bind_cols(water_productivity, water_productivity_years)
+```
+
+```{r preprocess3, include=FALSE}
+#pivoting tables
+mortality_rate1 <- pivot_longer(mortality_rate, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "mortality_rate")
+health_expenditure1 <- pivot_longer(health_expenditure, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "health_expenditure")
+health_expenditure_per1 <- pivot_longer(health_expenditure_per, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "health_expenditure_per")
+education_expenditure1 <- pivot_longer(education_expenditure, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "education_expenditure")
+domestic_health_expenditure1 <- pivot_longer(domestic_health_expenditure, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "domestic_health_expenditure")
+literacy_rate1 <- pivot_longer(literacy_rate, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "literacy_rate")
+water_invest1 <- pivot_longer(water_invest, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "water_invest")
+water_productivity1 <- pivot_longer(water_productivity, cols="2000":"2020",
+                                 names_to = "year",
+                                 values_to = "water_productivity")
+```
+
+
+```{r preprocess4, include=FALSE}
+#merging data
+merge_data <- merge(mortality_rate1, health_expenditure1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, health_expenditure_per1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, education_expenditure1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, domestic_health_expenditure1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, literacy_rate1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, water_invest1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, water_productivity1, by = c("country", "year"), all = TRUE)
+merge_data <- merge(merge_data, vacinnation, by = c("country", "year"), all = TRUE)
+```
+
+```{r preprocess5, include=FALSE}
+#including counties of the world
+all_countries <- c("Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
+    "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
+    "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan",
+    "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria",
+    "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada",
+    "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros",
+    "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark",
+    "Djibouti", "Dominica", "Dominican Republic", "East Timor", "Ecuador", "Egypt",
+    "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+    "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana",
+    "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti",
+    "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland",
+    "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati",
+    "Korea, North", "Korea, South", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia",
+    "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+    "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands",
+    "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia",
+    "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal",
+    "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia",
+    "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay",
+    "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda",
+    "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa",
+    "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles",
+    "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia",
+    "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden",
+    "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo",
+    "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+    "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States",
+    "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+    "Yemen", "Zambia", "Zimbabwe")
+
+merge_data <- subset(merge_data, country %in% all_countries)
+```
+\section{Analysis}
+The final data after preprocessing by pivoting all datasets to long with a column for year and the second containing the actual metric the data is representing like mortality rate, literacy rate, health expenditure etc. The data was then merged resulting thus in  4,157 observations, with 12 independent variables. The presence of NAs in some variable columns such as: education expenditure, literacy rate, water invest, GDP-per-capita. Although their presence signified different meanings among the variables. For instance, the literacy rate variable is almost always NA for the country Afghanistan, which entails that this data has not been recorded within said country. On the other hand, the variable water invest is NA for all countries, which means this information was not present in the dataset.
+
+
+As Figure 1 shows, NAs are dispersed throughout the columns in different concentrations. For some columns such as Health expenditure per, the total amount of NAs is drastically lesser than that of the water invest column, which is majorly composed of NAs. Moreover, columns such as The domestic health expenditure, and mortality rate,  show a close range of values for the percentages.
+
+```{r data overview, echo=FALSE}
+glimpse(merge_data)
+```
+Figure 1. Glimpse
+
+Figure 2 provides the skimmed dataset with only 12 observations of 17 variables, as seen below:
+
+
+The variables above have been skimmed, and from the result of the skimming we see that the columns with least to non missing values are Country and Year. Columns such as Mortality rate, Health expenditure, and Domestic health expenditure have a moderate NAs rate. However, Water productivity, Literacy rate, and Education expenditure have a much higher NA rate, with Water invest being the highest. Those values in turn affect the completion rate of the columns, hence we see the Country and Year considered as complete, yet the other columns completion levels vary, based on the amount of missing data. The numerical and statistical means and hists are then also found via computed calculations.
+
+```{r overview2, echo=FALSE}
+skimmed <- skim_to_wide(merge_data) %>% focus(n_missing, numeric.mean, numeric.sd, numeric.hist)
+skimmed
+```
+Figure 2. Skim Result
+
+```{r save1, eval=FALSE}
+#saving the final data
+write.csv(merge_data, "data/my_data.csv")
+```
+
+```{r preprocess6, include=FALSE}
+#remove rows with all na
+filtered_data <- merge_data %>%
+  select(-country, -year) %>%
+  filter(rowSums(is.na(.)) != ncol(.))
+
+```
+
+```{r impute, include=FALSE}
+# Create the knn imputation model on the training data
+preProcess_missingdata_model <- preProcess(filtered_data, method='knnImpute')
+preProcess_missingdata_model
+
+# Use the imputation model to predict the values of missing data points
+my_data_imputed <- predict(preProcess_missingdata_model, newdata = filtered_data)
+anyNA(my_data_imputed)
+
+```
+```{r save2, eval=FALSE}
+#saving the imputed data
+write.csv(my_data_imputed, "data/my_data_imputed.csv")
+```
+
+\section{Results}
+
+What is the trend and pattern of the average mortality rate over the years and are there any significant changes or fluctuations observed?
+
+
+Figure 3 depicts the average mortality rate over a range of years. The x-axis represents the years, while the y-axis represents the average mortality rate. The plot reveals a trend of the average mortality rate over time. In the earlier years, the average mortality rate was relatively high, gradually declining in subsequent years. However, there was a slight increase in the average mortality rate in 2018. Also, the plot shows a significant and noticeable increase in the average mortality rate in 2020. The sudden surge in the average mortality rate suggests a critical event or influential factor that impacted the population's health during this period.
+
+```{r avg mortality1, include=FALSE}
+# Impute missing values in the mortality_rate column using mean
+imputed_data_mean <- merge_data %>%
+  mutate(mortality_rate = replace_na(mortality_rate, mean(mortality_rate, na.rm = TRUE)))
+
+```
+
+```{r avg mortality2, eval=FALSE}
+write.csv(imputed_data_mean, "data/imputed_data_mean.csv")
+
+```
+
+```{r avg mortality3, echo=FALSE}
+# Aggregate data by year and calculate the average mortality rate
+avg_mortality <- aggregate(mortality_rate ~ year, data = imputed_data_mean, FUN = mean)
+
+# Create the line plot
+ggplot(avg_mortality, aes(x = year, y = mortality_rate, group = 1)) +
+  geom_line() +
+  xlab("Year") +
+  ylab("Average Mortality Rate") +
+  ggtitle("Average Mortality Rate over Years") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+Figure 3. Average Mortality Rate over Years}
+
+What is the relationship between Mortality Rate and Health Expenditure?
+
+
+Fiure 4 showcases the relationship between Mortality Rate and Health Expenditure. The x-axis represents Health Expenditure, while the y-axis represents Mortality Rate. The plot demonstrates the varying levels of Mortality Rate observed at different levels of Health Expenditure. 
+
+
+Upon closer examination, it becomes apparent that there is an inverse relationship between Mortality Rate and Health Expenditure. As Health Expenditure increases, Mortality Rate tends to decrease, suggesting a potential link between higher healthcare investment and improved health outcomes. However, it is worth noting that this relationship may not be entirely linear, as there are instances where the Mortality Rate remains relatively high despite higher Health Expenditure.
+
+
+```{r mprtality rate vs health, echo=FALSE}
+ggplot(data=my_data_imputed,mapping= aes(x = health_expenditure, y = mortality_rate)) +
+  geom_point(color="#361576") +
+  xlab("Health Expenditure") +
+  ylab("Mortality Rate") +
+  ggtitle("Mortality Rate vs. Health Expenditure")
+```
+Figure 4.Mortality Rate vs. Health Expenditure
+
+How does Literacy Rate affects Mortality Rate?
+
+
+Figure 5 illustrates the distribution of Mortality Rate across different levels of Literacy Rates. The x-axis represents the Literacy Rates, while the y-axis represents the Mortality Rate.
+
+Examining the plot, it is evident that there is a discernible pattern in the distribution of Mortality Rate with respect to Literacy Rates. As Literacy Rates increase, there is a tendency for the Mortality Rate to decrease. This suggests a potential correlation between higher literacy levels and lower Mortality Rates, indicating that education and literacy may play a role in improving overall health outcomes.
+
+However, it is important to note that the relationship between Mortality Rate and Literacy Rate may not be solely determined by literacy itself. Other confounding factors such as healthcare access, socioeconomic status, and healthcare utilization may also contribute to the observed distribution.
+```{r mortality rate vs expenditure, echo=FALSE}
+ggplot(data = my_data_imputed, mapping=aes(x = literacy_rate, y = mortality_rate)) +
+  geom_point(color="#361576") +
+  xlab("Literacy Rate") +
+  ylab("Mortality Rate") +
+  ggtitle("Distribution of Mortality Rate across Literacy Rates")
+```
+Figure 5. Distribution of Mortality Rate across Literacy Rates
+
+
+What is the effect of Education Expenditure on Mortality Rate?
+
+
+Figure 6 represents the relationship between Education Expenditure and Mortality Rate. The x-axis represents Education Expenditure, while the y-axis represents Mortality Rate.
+
+Upon examination of the plot, it is evident that there is an observable pattern indicating the effect of Education Expenditure on Mortality Rate. As Education Expenditure increases, there is a corresponding decrease in Mortality Rate. This suggests a potentially significant and meaningful relationship between higher investments in education and improved health outcomes.
+
+The plot demonstrates that allocating resources towards education expenditure may play a crucial role in reducing Mortality Rate. However, it is important to note that this relationship may not be solely determined by education expenditure itself. As we observe the significant increase of the mortality rate, other factors such as healthcare infrastructure, socioeconomic conditions, and healthcare accessibility might also influence the observed relationship.
+
+```{r mortality rate vs education, echo=FALSE}
+ggplot(data=my_data_imputed,mapping= aes(x = education_expenditure, y = mortality_rate)) +
+  geom_smooth() +
+  xlab("Education Expenditure") +
+  ylab("Mortality Rate") +
+  ggtitle("Effect of Education Expenditure on Mortality Rate")
+```
+Figure 6. Effect of Education Expenditure on Mortality Rate
+
+What is the effect of GDP per capita on Mortality Rate?
+
+
+Figure 7 represents the relationship between GDP per capita and Mortality Rate. The x-axis represents GDP per capita, while the y-axis represents Mortality Rate.
+
+It is observalble that GDP per capita highly effects mortality rate as GDP per capita increases, mortalty rate significantly decreases. This suggests a potentially significant and meaningful relationship between higher GDP and improved health.
+
+```{r mortality rate vs gdp, echo=FALSE}
+ggplot(data=my_data_imputed,mapping= aes(x = GDP_per_capita, y = mortality_rate)) +
+  geom_smooth() +
+  xlab("GDP per capita") +
+  ylab("Mortality Rate") +
+  ggtitle("Effect of GDP per capita on Mortality Rate")
+```
+
+
+Figure 7. Effect of GDP per capita on Mortality Rate
+
+
+What is the relationship between Water Productivity and Mortality Rate?
+
+
+Figure 8 represents the relationship between Water Productivity and Mortality Rate. The x-axis represents Water Productivity, while the y-axis represents Mortality Rate.
+
+Upon examining the plot, it becomes apparent that there is a discernible pattern suggesting a relationship between Water Productivity and Mortality Rate. As Water Productivity increases, there is a tendency for the Mortality Rate to decrease. This implies that higher efficiency and productivity in water usage may be associated with improved health outcomes and reduced Mortality Rates.
+```{r moratlity rate vs water, echo=FALSE}
+ggplot(data=my_data_imputed,mapping =  aes(x = water_productivity, y = mortality_rate)) +
+  geom_point(color = "#361576") +
+  xlab(" Water Productivity") +
+  ylab("Mortality Rate") +
+  ggtitle("Relationship between Water Productivity and Mortality Rate") 
+```
+Figure 8. Relationship between Water Productivity and Mortality Rate
+
+
+What is the relationship between Immunazation and Mortality Rate?
+
+
+Figure 9 represents the relationship between Immunization and Mortality Rate. The x-axis represents the level of Immunization, while the y-axis represents the Mortality Rate.
+
+Upon examining the plot, a clear pattern emerges, indicating a relationship between Immunization and Mortality Rate. As the level of Immunization increases, there is a corresponding decrease in the Mortality Rate. This suggests that higher rates of Immunization may be associated with lower Mortality Rates, highlighting the potential protective effect of immunization against preventable diseases.
+```{r moratlity rate vs immune, echo=FALSE}
+ggplot(data= my_data_imputed, mapping = aes(x = immunazation,y = mortality_rate))+
+  geom_bar(stat = "summary", fun = "mean",color="#361576")+
+  xlab("Immunazation") +
+  ylab("Mortality Rate") +
+  ggtitle("Relationship between Immunazation and Mortality Rate")
+```
+Figure 9. Relationship between Immunazation and Mortality Rate
+
+```{r corr1, include=FALSE}
+cormat <- round(cor(my_data_imputed),2)
+```
+
+```{r corr2, include=FALSE}
+library(reshape2)
+melted_cormat <- melt(cormat)
+```
+
+A seen in the following Figure 10 highest correlation exist between GDP per capita and health expenditure. In terms of mortality rate it has a high correlation with dmestic health expenditure. 
+
+```{r corr3, echo=FALSE}
+#create correlation heatmap
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() +
+  geom_text(aes(Var2, Var1, label = value), size = 3) +
+  scale_fill_gradient2(low = "blue", high = "red",
+                       limit = c(-1,1), name="Correlation") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Figure 10. Heatmap of correlation between variables
+```{r trainig1, include=FALSE}
+# Store X and Y for later use.
+X = my_data_imputed[, 2:10]
+y = my_data_imputed$mortality_rate
+```
+
+
+```{r split-train-test, include=FALSE}
+# Set the seed for reproducibility
+set.seed(123)
+
+#train test split 
+train_indices <- createDataPartition(y, p = 0.8, list = FALSE)
+X_train <- X[train_indices,]
+y_train <- y[train_indices]
+X_test <- X[-train_indices,]
+y_test <- y[-train_indices]
+
+```
+
+```{r linear regression, include=FALSE}
+# Create and fit the linear regression model
+model_LR <- train(X_train, y_train, method = "lm")
+
+# Make predictions on the test set
+y_pred_LR <- predict(model_LR, X_test)
+
+# Evaluate the model using mean squared error
+mse_LR <- mean((y_test - y_pred_LR)^2)
+
+# Calculate R-squared
+r2_LR <- cor(y_pred_LR, y_test)^2
+
+```
+
+```{r decison tree, include=FALSE}
+# Create and fit the decison tree model
+model_tree <- train(X_train, y_train, method = "rpart")
+
+# Make predictions on the test set
+y_pred_tree <- predict(model_tree, X_test)
+
+# Evaluate the model using mean squared error
+mse_tree <- mean((y_test - y_pred_tree)^2)
+
+# Calculate R-squared
+r2_tree <- cor(y_pred_tree, y_test)^2
+```
+
+```{r gradiant boost, include=FALSE}
+# Create and fit the gradiant boost model
+model_gbm <- train(X_train, y_train, method = "gbm")
+
+# Make predictions on the test set
+y_pred_gbm <- predict(model_gbm, X_test)
+
+# Evaluate the model using mean squared error
+mse_gbm <- mean((y_test - y_pred_gbm)^2)
+
+# Calculate R-squared
+r2_gbm <- cor(y_pred_gbm, y_test)^2
+```
+
+```{r XGBoost, include=FALSE}
+# Create and fit the XGBoost model
+model_xgb <- train(X_train, y_train, method = "xgbTree")
+
+# Make predictions on the test set
+y_pred_xgb <- predict(model_xgb, X_test)
+
+# Evaluate the model using mean squared error
+mse_xgb <- mean((y_test - y_pred_xgb)^2)
+
+# Calculate R-squared
+r2_xgb <- cor(y_pred_xgb, y_test)^2
+```
+
+```{r SVM, include=FALSE}
+# Create and fit the SVM model
+model_svm <- train(X_train, y_train, method = "svmRadial")
+
+# Make predictions on the test set
+y_pred_svm <- predict(model_svm, X_test)
+
+# Evaluate the model using mean squared error
+mse_svm <- mean((y_test - y_pred_svm)^2)
+
+# Calculate R-squared
+r2_svm <- cor(y_pred_xgb, y_test)^2
+```
+\section{Discussion}
+The objective of this project was to analyze the average mortality rate over the years using various statistical and machine-learning models. Before conducting the analysis, the dataset was divided into training and testing data sets, with an 80\% and 20\% split respectively. This division allowed us to assess the accuracy of the models on unseen data and prevent overfitting. In addition, to defining the features (X) and target variable (Y) which in our context is the mortality rate.
+
+
+To ensure the repeatability of the results, a seed was set, and the data was further divided into five nearly equal folds. This approach enabled us to evaluate the performance of the models across different subsets of the data and obtain more robust insights.
+
+
+We employed several models, including Linear Regression, Decision Tree, GBM, XGBoost, and Support Vector Machines (SVM), to predict the average mortality rate. The performance of each model was evaluated using two metrics, namely Root Mean Squared Error (RMSE) and R-squared.
+
+The results of our analysis provide valuable insights into the performance of the models. The model with the lowest RMSE and the highest R-squared is generally considered the best-performing model. These metrics indicate the accuracy and the amount of variance in the dependent variable that can be explained by the independent variables.
+
+
+After comparing the performance of each model as seen in Figure 11, we found that XGBoost produces the best results with 0.1159076 for RMSE and 0.8703444 for R-squared. Followed by GBM with 0.1665639 for RMSE and 0.8139392 for R-squared. These results indicate their ability to provide accurate predictions and explain a significant portion of the variance. 
+
+
+```{r compare, echo=FALSE}
+#create table to compare models
+metrics_df <- data.frame(Model = c("Linear Regression", "Decision Tree", "GBM", "XGBoost", "SVM"),
+                         RMSE = c(mse_LR, mse_tree, mse_gbm, mse_xgb, mse_svm),
+                         R_squared = c(r2_LR, r2_tree, r2_gbm, r2_xgb, r2_svm))
+
+# Print the table
+print(metrics_df)
+```
+
+Figure 11. Model Comparison
+
+
+In the case of Linear Regression, the model calculates coefficient values for each variable, indicating the magnitude and direction of their impact on the target variable (mortality rate). Variables with larger coefficients are considered more influential. For example, the variable "immunization" was found to have the most significant effect on the model's predictions, suggesting that it strongly contributes to changes in the average mortality rate.
+
+
+For Decision Tree, it splits the data based on various features to make predictions. By examining the structure of the tree, you can identify the variables that were used most frequently and had the highest information gain or Gini importance in the decision-making process. For instance, variables such as health expenditure and GDP per capita were repeatedly used to split the data, indicating their significant influence on the model's predictions. Also, the same variables have a significant influence on the GBM, SVM, and XGBoost models predictions, these results show that health expenditure and GDP per capita highly affect the mortality rate. In addition, as seen in Figure 4 and Figure 7 higher health expenditure and GDP per capita result in a significant decrease in mortality rate.
+
+
+\section{Conclusion}
+In conclusion, our analysis demonstrates the feasibility of using statistical and machine learning models to predict the average mortality rate over the years. The results highlight the potential of certain models, such as GBM, in accurately predicting the mortality rate and providing valuable insights. We effectively demonstrated that variables such that health expenditure and GDP per capita significantly affect mortality rates. In addition, dmestic health expenditure which was demonstrated through the correlation heatmap. However, further exploration and refinement of the models, including feature engineering such as excluding features with alot of null values or features with low correlation factor and low importance, in addition to hyperparameter tuning, may lead to improved performance.
+
+\section{References}
+\begin{enumerate}
+ \item   Bitew, F. H., Nyarko, S. H., Potter, L.,\& amp; Sparks, C. S. (2020, November 4). Machine Learning Approach for predicting under-five mortality determinants in Ethiopia: Evidence from the 2016 Ethiopian demographic and Health Survey - genus. SpringerOpen. https://genus.springeropen.com/articles/10.1186/s41118-020-00106-2 
+ \item Owusu, P. A., Sarkodie, S. A., \&amp; Pedersen, P. A. (2021, February 24). Relationship between mortality and Health Care Expenditure: Sustainable Assessment of Health Care System. PloS one. 
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7904168/
+\#:~:text=The\%20empirical\%20results\%20show\%20that,with\%20high\%20infant\%20mortality
+\%20rate 
+\item Saroj, R. K., Yadav, P. K., Singh, R., \&amp; Chilyabanyama, O. N. (2022, September 24). Machine learning algorithms for understanding the determinants of under-five mortality. BioData mining. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9509654/
+
+\item Literacy rate, adult total (\% of people ages 15 and above). World Bank Open Data. (n.d.-c). https://data.worldbank.org/indicator/SE.ADT.LITR.ZS 
+
+\item Mortality rate, under-5 (per 1,000 live births). World Bank Open Data. (n.d.-d). https://data.worldbank.org/indicator/SH.DYN.MORT 
+
+\item Water productivity, total (constant 2015 US\$ GDP per cubic meter ... - data. (n.d.-b). 
+https://data.worldbank.org/indicator/ER.GDP.FWTL.M3.KD 
+
+\item World Bank Open Data. (n.d.-d). https://data.worldbank.org/indicator/IE.PPI.WATR.CD 
+
+\item Current health expenditure (\% of GDP). World Bank Open Data. (n.d.-a). https://data.worldbank.org/indicator/SH.XPD.CHEX.GD.ZS 
+\item Current health expenditure per capita (current US\$). World Bank Open Data. (n.d.-b). https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD?name\_desc=true 
+\item World Bank Open Data. (n.d.-c). https://data.worldbank.org/indicator/se.xpd.ctot.zs 
+
+\item Domestic Private Health Expenditure (\% of current ... - world bank data. (n.d.-a). 
+https://data.worldbank.org/indicator/SH.XPD.PVTD.CH.ZS 
+\item Income inequality: Gini coefficient. Our World in Data. (n.d.). https://ourworldindata.org/
+grapher/economic-inequality-gini-index?country=~BRA 
+\end{enumerate}
+
+```{r linear regression2, include=FALSE}
+#printing feature table for linear regression model
+feature_importance_LR <- varImp(model_LR)
+print(feature_importance_LR)
+```
+
+```{r decision tree2, include=FALSE}
+#printing feature table for decision tree model
+feature_importance_tree <- varImp(model_tree)
+print(feature_importance_tree)
+```
+
+```{r gradient boost2, include=FALSE}
+#printing feature table for gradient boost  model
+feature_importance_gbm <- varImp(model_gbm)
+print(feature_importance_gbm)
+```
+
+```{r  XGBoost2, include=FALSE}
+#printing feature table for XGBoost  model
+feature_importance_xgb <- varImp(model_xgb)
+print(feature_importance_xgb)
+```
+
+```{r SVM2, include=FALSE}
+#printing feature table for SVM  model
+feature_importance_svm <- varImp(model_svm)
+print(feature_importance_svm)
+```
