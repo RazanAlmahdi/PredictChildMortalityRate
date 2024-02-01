@@ -23,7 +23,7 @@ All data is numeric continus representing rates:
 ## How to run the program
 * Clone the repository to your local machine:
 ```
-git clone https://github.com/AichaSidiya/predictChildMortality.git
+git clone https://github.com/RazanAlmahdi/PredictChildMortalityRate.git
 ``` 
 * Install [R and Rstudio](https://posit.co/download/rstudio-desktop/); version 3
 * Install all required packeges from R itsself : 
@@ -41,6 +41,7 @@ git clone https://github.com/AichaSidiya/predictChildMortality.git
 
 ## Authors
 <!-- The contributors to the project-->
+* [Razan Almahdi](https://github.com/RazanAlmahdi)
 * [Aicha Sidiya](https://github.com/AichaSidiya)
 * [Hanin Alzaher](https://github.com/hanin-az)
-* [Razan Almahdi](https://github.com/RazanAlmahdi)
+
